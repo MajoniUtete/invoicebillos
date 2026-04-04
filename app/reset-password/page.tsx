@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
@@ -13,7 +13,7 @@ function getHashParams() {
   return new URLSearchParams(hash);
 }
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -41,6 +41,7 @@ export default function ResetPasswordPage() {
 
         if (error) {
           setError(error.message);
+          setReady(true);
           return;
         }
 
@@ -64,6 +65,7 @@ export default function ResetPasswordPage() {
 
         if (error) {
           setError(error.message);
+          setReady(true);
           return;
         }
 
@@ -84,6 +86,7 @@ export default function ResetPasswordPage() {
       });
 
       unsubscribe = () => subscription.unsubscribe();
+      setReady(true);
     }
 
     prepareRecoverySession();
@@ -218,5 +221,33 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function ResetPasswordFallback() {
+  return (
+    <main className="min-h-screen bg-slate-950 text-white">
+      <div className="mx-auto flex max-w-7xl px-6 py-16 md:px-10">
+        <div className="mx-auto w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/60 p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">
+            InvoiceBillos Auth
+          </p>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight">
+            Reset your password
+          </h1>
+          <div className="mt-8 rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-300">
+            Loading password recovery session...
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<ResetPasswordFallback />}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

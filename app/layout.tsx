@@ -54,18 +54,18 @@ export default function RootLayout({
                   Invoices
                 </Link>
                 <Link
-  href="/settings"
-  className="text-sm font-medium text-slate-300 transition hover:text-white"
->
-  Settings
-</Link>
-              <Link
-  href="/support"
-  className="text-sm font-medium text-slate-300 transition hover:text-white"
->
-  Support
-</Link>
-</nav>
+                  href="/settings"
+                  className="text-sm font-medium text-slate-300 transition hover:text-white"
+                >
+                  Settings
+                </Link>
+                <Link
+                  href="/support"
+                  className="text-sm font-medium text-slate-300 transition hover:text-white"
+                >
+                  Support
+                </Link>
+              </nav>
 
               <div className="flex items-center gap-3">
                 <Link
@@ -93,6 +93,9 @@ export default function RootLayout({
                 </Link>
                 <Link href="/invoices" className="hover:text-white">
                   Invoices
+                </Link>
+                <Link href="/support" className="hover:text-white">
+                  Support
                 </Link>
               </div>
             </div>

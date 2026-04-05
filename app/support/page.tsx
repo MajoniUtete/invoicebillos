@@ -1,7 +1,5 @@
 import Link from "next/link";
-
 const DONATION_URL = "https://buy.stripe.com/4gM4gB9dsaJv3zI5et8so00";
-
 export default function SupportPage() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
@@ -11,37 +9,37 @@ export default function SupportPage() {
             Support InvoiceBillos
           </p>
           <h1 className="mt-4 text-4xl font-bold tracking-tight md:text-5xl">
-            Keep InvoiceBillos free and useful for everyone
+            Help keep InvoiceBillos free for everyone
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
             InvoiceBillos is built to stay simple, practical, and accessible.
-            If it helps you, you can support its growth with a donation.
+            If it has helped you save time or manage your work more easily, you
+            can support its growth with a donation.
           </p>
         </div>
 
         <section className="grid gap-6 md:grid-cols-2">
           <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
-            <h2 className="text-2xl font-semibold">Why support it?</h2>
+            <h2 className="text-2xl font-semibold">Why support InvoiceBillos?</h2>
             <div className="mt-5 space-y-4 text-sm leading-7 text-slate-300">
-              <p>Help cover hosting, email, and development costs.</p>
-              <p>Support improvements, bug fixes, and new features.</p>
-              <p>Help keep the product open and easy to access for more users.</p>
+              <p>Help cover hosting, email, maintenance, and development costs.</p>
+              <p>Support improvements, bug fixes, and useful new features.</p>
+              <p>
+                Help keep InvoiceBillos free, simple, and available to more users.
+              </p>
             </div>
           </div>
 
           <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
-            <h2 className="text-2xl font-semibold">How to support</h2>
+            <h2 className="text-2xl font-semibold">Support the project</h2>
             <div className="mt-5 space-y-4 text-sm leading-7 text-slate-300">
               <p>
-                Add your real donation link later by editing the
-                <span className="mx-1 rounded bg-slate-800 px-2 py-1 font-mono text-xs text-emerald-300">
-                  DONATION_URL
-                </span>
-                constant in this file.
+                Donations are completely optional, but every contribution helps
+                keep InvoiceBillos running and improving.
               </p>
               <p>
-                For now, this page is ready and the button below is in place for
-                your future donation link.
+                If you value the product and want to support its future, you can
+                use the donation button below.
               </p>
             </div>
 
@@ -52,7 +50,7 @@ export default function SupportPage() {
                 rel="noreferrer"
                 className="rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-400"
               >
-                Donate to InvoiceBillos
+                Support InvoiceBillos
               </a>
 
               <Link
@@ -66,10 +64,10 @@ export default function SupportPage() {
         </section>
 
         <section className="mt-8 rounded-3xl border border-slate-800 bg-slate-900/60 p-6">
-          <h2 className="text-2xl font-semibold">Launch note</h2>
+          <h2 className="text-2xl font-semibold">A small note</h2>
           <p className="mt-4 text-sm leading-7 text-slate-300">
-            InvoiceBillos is currently free to use. Donations are optional and
-            help keep the service stable and improving over time.
+            InvoiceBillos is free to use. Donations are optional and simply help
+            support stability, maintenance, and future improvements.
           </p>
         </section>
       </div>

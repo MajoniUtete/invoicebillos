@@ -32,6 +32,7 @@ function ResetPasswordContent() {
     async function prepareRecoverySession() {
       setError("");
 
+      const fromRecovery = searchParams.get("fromRecovery");
       const code = searchParams.get("code");
 
       if (code) {
@@ -69,6 +70,19 @@ function ResetPasswordContent() {
           return;
         }
 
+        setIsRecoveryFlow(true);
+        setReady(true);
+        return;
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (!mounted) return;
+
+      if (!userError && user && fromRecovery === "1") {
         setIsRecoveryFlow(true);
         setReady(true);
         return;

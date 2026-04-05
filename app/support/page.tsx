@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const DONATION_URL = "#";
+const DONATION_URL = "https://buy.stripe.com/4gM4gB9dsaJv3zI5et8so00";
 
 export default function SupportPage() {
   return (

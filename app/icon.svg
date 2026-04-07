@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="InvoiceBillos icon">
+  <rect width="64" height="64" rx="14" fill="#020617" />
+  <path d="M17 10h18l12 12v32H17z" fill="#0f172a" stroke="#1e293b" stroke-width="2" />
+  <path d="M35 10v12h12" fill="none" stroke="#334155" stroke-width="2" />
+  <rect x="23" y="24" width="5" height="20" rx="2.5" fill="#22c55e" />
+  <path
+    d="M34 24h6.5a5.5 5.5 0 0 1 0 11H34m0-11v11m0 0h7.5a5.5 5.5 0 0 1 0 11H34m0-11v11"
+    fill="none"
+    stroke="#f8fafc"
+    stroke-width="4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

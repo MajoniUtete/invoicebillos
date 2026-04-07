@@ -8,11 +8,6 @@ export const metadata: Metadata = {
   title: "InvoiceBillos",
   description: "Simple invoicing for everyone",
   applicationName: "InvoiceBillos",
-  icons: {
-    icon: "/invoicebillos-icon.svg",
-    shortcut: "/invoicebillos-icon.svg",
-    apple: "/invoicebillos-icon.svg",
-  },
 };
 
 export default function RootLayout({

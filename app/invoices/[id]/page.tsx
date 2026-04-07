@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
@@ -150,7 +150,7 @@ export default function InvoiceDetailPage() {
   const [taxPercent, setTaxPercent] = useState("0");
   const [discount, setDiscount] = useState("0");
 
-  async function loadInvoiceDetail() {
+  const loadInvoiceDetail = useCallback(async () => {
     if (!invoiceId) {
       setError("Invoice ID is missing.");
       setLoading(false);
@@ -250,11 +250,25 @@ export default function InvoiceDetailPage() {
     }
 
     setLoading(false);
-  }
+  }, [invoiceId]);
 
   useEffect(() => {
-    loadInvoiceDetail();
-  }, [invoiceId]);
+    let cancelled = false;
+
+    async function loadInitialInvoice() {
+      await Promise.resolve();
+
+      if (!cancelled) {
+        await loadInvoiceDetail();
+      }
+    }
+
+    void loadInitialInvoice();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadInvoiceDetail]);
 
   const subtotal = useMemo(() => {
     return editableItems.reduce((sum, item) => {

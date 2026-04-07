@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
         : "http://localhost:3000";
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/reset-password`,
+      redirectTo: `${origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
     });
 
     if (error) {
@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
     }
 
     setSuccess(
-      "If that email exists in the system, a password reset link has been sent."
+      "If that email exists in the system, a password reset link has been sent. Check your inbox and spam folder."
     );
     setBusy(false);
   }

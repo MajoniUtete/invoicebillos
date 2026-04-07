@@ -29,11 +29,25 @@ function ResetPasswordContent() {
     let mounted = true;
     let unsubscribe: (() => void) | null = null;
 
+    function markRecoveryReady() {
+      if (!mounted) return;
+
+      setIsRecoveryFlow(true);
+      setReady(true);
+
+      if (typeof window !== "undefined") {
+        window.history.replaceState({}, "", "/reset-password?fromRecovery=1");
+      }
+    }
+
     async function prepareRecoverySession() {
+      setReady(false);
       setError("");
 
       const fromRecovery = searchParams.get("fromRecovery");
       const code = searchParams.get("code");
+      const tokenHash = searchParams.get("token_hash");
+      const searchType = searchParams.get("type");
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -46,17 +60,34 @@ function ResetPasswordContent() {
           return;
         }
 
-        setIsRecoveryFlow(true);
-        setReady(true);
+        markRecoveryReady();
+        return;
+      }
+
+      if (tokenHash && searchType === "recovery") {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "recovery",
+        });
+
+        if (!mounted) return;
+
+        if (error) {
+          setError(error.message);
+          setReady(true);
+          return;
+        }
+
+        markRecoveryReady();
         return;
       }
 
       const hashParams = getHashParams();
       const accessToken = hashParams.get("access_token");
       const refreshToken = hashParams.get("refresh_token");
-      const type = hashParams.get("type");
+      const hashType = hashParams.get("type");
 
-      if (type === "recovery" && accessToken && refreshToken) {
+      if ((hashType === "recovery" || searchType === "recovery") && accessToken && refreshToken) {
         const { error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
@@ -70,19 +101,18 @@ function ResetPasswordContent() {
           return;
         }
 
-        setIsRecoveryFlow(true);
-        setReady(true);
+        markRecoveryReady();
         return;
       }
 
       const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
       if (!mounted) return;
 
-      if (!userError && user && fromRecovery === "1") {
+      if (!sessionError && session?.user && fromRecovery === "1") {
         setIsRecoveryFlow(true);
         setReady(true);
         return;
@@ -96,6 +126,10 @@ function ResetPasswordContent() {
         if (event === "PASSWORD_RECOVERY" && session) {
           setIsRecoveryFlow(true);
           setReady(true);
+
+          if (typeof window !== "undefined") {
+            window.history.replaceState({}, "", "/reset-password?fromRecovery=1");
+          }
         }
       });
 
@@ -170,8 +204,16 @@ function ResetPasswordContent() {
               Waiting for a valid password recovery session...
             </div>
           ) : !isRecoveryFlow ? (
-            <div className="mt-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
-              Open this page from a password reset email link to set a new password.
+            <div className="mt-8 space-y-4">
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
+                Open this page from a password reset email link to set a new password.
+              </div>
+              <Link
+                href="/forgot-password"
+                className="inline-flex rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-900"
+              >
+                Request a new reset link
+              </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">

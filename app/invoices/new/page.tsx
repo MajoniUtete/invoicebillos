@@ -45,6 +45,35 @@ type InvoiceForm = {
   paymentTerms: string;
 };
 
+const CURRENCY_OPTIONS = [
+  { code: "USD", label: "US Dollar" },
+  { code: "EUR", label: "Euro" },
+  { code: "GBP", label: "British Pound" },
+  { code: "ZAR", label: "South African Rand" },
+  { code: "NGN", label: "Nigerian Naira" },
+  { code: "KES", label: "Kenyan Shilling" },
+  { code: "GHS", label: "Ghanaian Cedi" },
+  { code: "EGP", label: "Egyptian Pound" },
+  { code: "AED", label: "UAE Dirham" },
+  { code: "SAR", label: "Saudi Riyal" },
+  { code: "INR", label: "Indian Rupee" },
+  { code: "CNY", label: "Chinese Yuan" },
+  { code: "JPY", label: "Japanese Yen" },
+  { code: "CAD", label: "Canadian Dollar" },
+  { code: "AUD", label: "Australian Dollar" },
+  { code: "CHF", label: "Swiss Franc" },
+  { code: "SEK", label: "Swedish Krona" },
+  { code: "NOK", label: "Norwegian Krone" },
+  { code: "DKK", label: "Danish Krone" },
+  { code: "NZD", label: "New Zealand Dollar" },
+  { code: "SGD", label: "Singapore Dollar" },
+  { code: "HKD", label: "Hong Kong Dollar" },
+  { code: "BRL", label: "Brazilian Real" },
+  { code: "MXN", label: "Mexican Peso" },
+  { code: "TRY", label: "Turkish Lira" },
+  { code: "ZiG", label: "Zimbabwe Gold" },
+];
+
 function generateInvoiceNumber() {
   const now = new Date();
   const yyyy = now.getFullYear();
@@ -71,7 +100,7 @@ function createEmptyForm(): InvoiceForm {
   return {
     invoiceNumber: generateInvoiceNumber(),
     customerId: "",
-    currency: "USD",
+    currency: "EUR",
     issueDate: "",
     dueDate: "",
     taxPercent: "0",
@@ -317,7 +346,7 @@ export default function NewInvoicePage() {
 
     setForm({
       ...createEmptyForm(),
-      currency: profile?.default_currency || "USD",
+      currency: profile?.default_currency || "EUR",
       notes: profile?.default_notes || "Thank you for your business.",
       paymentTerms:
         profile?.default_payment_terms || "Payment due within 14 days.",
@@ -405,9 +434,11 @@ export default function NewInvoicePage() {
                     onChange={handleFormChange}
                     className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none"
                   >
-                    <option>USD</option>
-                    <option>EUR</option>
-                    <option>ZiG</option>
+                    {CURRENCY_OPTIONS.map((currency) => (
+                      <option key={currency.code} value={currency.code}>
+                        {currency.code} — {currency.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

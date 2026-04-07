@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import AuthButtons from "./components/auth-buttons";
 import "./globals.css";
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
   icons: {
     icon: "/invoicebillos-icon.svg",
     shortcut: "/invoicebillos-icon.svg",
+    apple: "/invoicebillos-icon.svg",
   },
 };
 
@@ -24,8 +26,18 @@ export default function RootLayout({
         <div className="min-h-screen bg-slate-950 text-white print:bg-white print:text-black">
           <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/90 backdrop-blur print:hidden">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 md:px-10">
-              <Link href="/" className="text-xl font-bold tracking-tight">
-                <span className="text-emerald-400">Invoice</span>Billos
+              <Link href="/" className="flex items-center gap-3 text-xl font-bold tracking-tight">
+                <Image
+                  src="/invoicebillos-icon.svg"
+                  alt="InvoiceBillos logo"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-lg"
+                  priority
+                />
+                <span>
+                  <span className="text-emerald-400">Invoice</span>Billos
+                </span>
               </Link>
 
               <nav className="hidden items-center gap-6 md:flex">

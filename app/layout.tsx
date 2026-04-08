@@ -1,13 +1,37 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import AuthButtons from "./components/auth-buttons";
+import PWARegistration from "./components/pwa-registration";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "InvoiceBillos",
-  description: "Simple invoicing for everyone",
+  title: {
+    default: "InvoiceBillos",
+    template: "%s | InvoiceBillos",
+  },
+  description:
+    "A clean invoicing app for freelancers and small businesses to manage customers, create invoices, and export PDFs.",
   applicationName: "InvoiceBillos",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "InvoiceBillos",
+  },
+  formatDetection: {
+    address: false,
+    email: false,
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#020617" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+  ],
 };
 
 export default function RootLayout({
@@ -18,6 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-slate-950 text-white antialiased print:bg-white print:text-black">
+        <PWARegistration />
         <div className="min-h-screen bg-slate-950 text-white print:bg-white print:text-black">
           <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/90 backdrop-blur print:hidden">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 md:px-10">

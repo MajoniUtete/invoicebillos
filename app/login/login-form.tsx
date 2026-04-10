@@ -1,18 +1,44 @@
 "use client";
 
+import Script from "next/script";
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: string | HTMLElement,
+        options: {
+          sitekey: string;
+          callback?: (token: string) => void;
+          "expired-callback"?: () => void;
+          "error-callback"?: () => void;
+          theme?: "light" | "dark" | "auto";
+        }
+      ) => string;
+      reset: (widgetId?: string) => void;
+      remove: (widgetId?: string) => void;
+    };
+  }
+}
+
+const TURNSTILE_SITE_KEY = "0x4AAAAAAC6rJE0zGtAnE6oT";
+
 export default function LoginForm({ nextUrl }: { nextUrl: string }) {
   const router = useRouter();
+  const captchaContainerRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState<"login" | "signup" | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [turnstileReady, setTurnstileReady] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -22,15 +48,60 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
     });
   }, [router]);
 
+  function renderTurnstile() {
+    if (!captchaContainerRef.current || !window.turnstile) return;
+
+    captchaContainerRef.current.innerHTML = "";
+
+    turnstileWidgetIdRef.current = window.turnstile.render(
+      captchaContainerRef.current,
+      {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme: "dark",
+        callback: (token: string) => {
+          setCaptchaToken(token);
+          setError("");
+        },
+        "expired-callback": () => {
+          setCaptchaToken("");
+        },
+        "error-callback": () => {
+          setCaptchaToken("");
+          setError("Security check failed. Please refresh and try again.");
+        },
+      }
+    );
+  }
+
+  useEffect(() => {
+    if (!turnstileReady) return;
+    renderTurnstile();
+
+    return () => {
+      if (window.turnstile && turnstileWidgetIdRef.current) {
+        window.turnstile.remove(turnstileWidgetIdRef.current);
+      }
+    };
+  }, [turnstileReady]);
+
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy("login");
     setMessage("");
     setError("");
 
+    if (!captchaToken) {
+      setError("Please complete the security check and try again.");
+      setBusy(null);
+      return;
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        captchaToken,
+      },
     });
 
     if (error) {
@@ -38,6 +109,11 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
       setBusy(null);
       return;
     }
+
+    if (window.turnstile && turnstileWidgetIdRef.current) {
+      window.turnstile.reset(turnstileWidgetIdRef.current);
+    }
+    setCaptchaToken("");
 
     router.push(nextUrl);
     router.refresh();
@@ -49,10 +125,24 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
     setMessage("");
     setError("");
 
+    if (!captchaToken) {
+      setError("Please complete the security check and try again.");
+      setBusy(null);
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        captchaToken,
+      },
     });
+
+    if (window.turnstile && turnstileWidgetIdRef.current) {
+      window.turnstile.reset(turnstileWidgetIdRef.current);
+    }
+    setCaptchaToken("");
 
     if (error) {
       setError(error.message);
@@ -68,6 +158,12 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
+      <Script
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+        strategy="afterInteractive"
+        onLoad={() => setTurnstileReady(true)}
+      />
+
       <div className="mx-auto flex max-w-7xl px-6 py-16 md:px-10">
         <div className="mx-auto w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/60 p-8">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-300">
@@ -107,6 +203,20 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
                 className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500"
                 placeholder="Minimum 6 characters"
               />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium">
+                Security check
+              </label>
+              <div
+                ref={captchaContainerRef}
+                className="min-h-[65px] rounded-xl border border-slate-700 bg-slate-950 p-2"
+              />
+              <p className="mt-2 text-xs text-slate-400">
+                Complete the security check before logging in or creating an
+                account.
+              </p>
             </div>
 
             {error ? (

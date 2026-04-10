@@ -211,7 +211,7 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
               </label>
               <div
                 ref={captchaContainerRef}
-                className="min-h-[65px] rounded-xl border border-slate-700 bg-slate-950 p-2"
+                className="min-h-16 rounded-xl border border-slate-700 bg-slate-950 p-2"
               />
               <p className="mt-2 text-xs text-slate-400">
                 Complete the security check before logging in or creating an

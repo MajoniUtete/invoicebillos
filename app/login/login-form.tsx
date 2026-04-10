@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import TurnstileWidget from "@/app/components/turnstile-widget";
 import { supabase } from "@/lib/supabase/client";
+
+const turnstileEnabled = Boolean(
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()
+);
 
 export default function LoginForm({ nextUrl }: { nextUrl: string }) {
   const router = useRouter();
@@ -11,6 +16,9 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState<"login" | "signup" | null>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -22,16 +30,44 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
     });
   }, [router]);
 
+  function resetCaptcha() {
+    if (!turnstileEnabled) {
+      return;
+    }
+
+    setCaptchaToken("");
+    setCaptchaError("");
+    setCaptchaResetKey((current) => current + 1);
+  }
+
+  function ensureCaptcha() {
+    if (!turnstileEnabled || captchaToken) {
+      return true;
+    }
+
+    setCaptchaError("Complete the CAPTCHA challenge to continue.");
+    return false;
+  }
+
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy("login");
     setMessage("");
     setError("");
+    setCaptchaError("");
+
+    if (!ensureCaptcha()) {
+      return;
+    }
+
+    setBusy("login");
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: captchaToken ? { captchaToken } : undefined,
     });
+
+    resetCaptcha();
 
     if (error) {
       setError(error.message);
@@ -45,14 +81,23 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
   }
 
   async function handleSignup() {
-    setBusy("signup");
     setMessage("");
     setError("");
+    setCaptchaError("");
+
+    if (!ensureCaptcha()) {
+      return;
+    }
+
+    setBusy("signup");
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: captchaToken ? { captchaToken } : undefined,
     });
+
+    resetCaptcha();
 
     if (error) {
       setError(error.message);
@@ -109,9 +154,9 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
               />
             </div>
 
-            {error ? (
+            {error || captchaError ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
-                {error}
+                {error || captchaError}
               </div>
             ) : null}
 
@@ -120,6 +165,17 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
                 {message}
               </div>
             ) : null}
+
+            <TurnstileWidget
+              onErrorChange={setCaptchaError}
+              onTokenChange={(token) => {
+                setCaptchaToken(token);
+                if (token) {
+                  setCaptchaError("");
+                }
+              }}
+              resetKey={captchaResetKey}
+            />
 
             <div className="flex flex-col gap-3">
               <button

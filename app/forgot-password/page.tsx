@@ -2,20 +2,45 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import TurnstileWidget from "@/app/components/turnstile-widget";
 import { supabase } from "@/lib/supabase/client";
+
+const turnstileEnabled = Boolean(
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()
+);
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState("");
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  function resetCaptcha() {
+    if (!turnstileEnabled) {
+      return;
+    }
+
+    setCaptchaToken("");
+    setCaptchaError("");
+    setCaptchaResetKey((current) => current + 1);
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    setBusy(true);
     setError("");
+    setCaptchaError("");
     setSuccess("");
+
+    if (turnstileEnabled && !captchaToken) {
+      setCaptchaError("Complete the CAPTCHA challenge to continue.");
+      return;
+    }
+
+    setBusy(true);
 
     const origin =
       typeof window !== "undefined"
@@ -24,7 +49,10 @@ export default function ForgotPasswordPage() {
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
+      captchaToken: captchaToken || undefined,
     });
+
+    resetCaptcha();
 
     if (error) {
       setError(error.message);
@@ -67,9 +95,9 @@ export default function ForgotPasswordPage() {
               />
             </div>
 
-            {error ? (
+            {error || captchaError ? (
               <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">
-                {error}
+                {error || captchaError}
               </div>
             ) : null}
 
@@ -78,6 +106,17 @@ export default function ForgotPasswordPage() {
                 {success}
               </div>
             ) : null}
+
+            <TurnstileWidget
+              onErrorChange={setCaptchaError}
+              onTokenChange={(token) => {
+                setCaptchaToken(token);
+                if (token) {
+                  setCaptchaError("");
+                }
+              }}
+              resetKey={captchaResetKey}
+            />
 
             <button
               type="submit"

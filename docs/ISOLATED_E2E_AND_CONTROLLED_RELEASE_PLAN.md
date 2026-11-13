@@ -1,5 +1,7 @@
 # Isolated end-to-end milestone and coordinated release plan
 
+Recovery continuation: [recovered workspace and measured E2E results](RECOVERED_WORKSPACE_AND_E2E.md). The interruption status below is historical.
+
 Date: 2026-11-13 (Europe/Helsinki).
 Development branch: engineering/backend-finance-mobile-2026-11-13.
 Verified starting code commit: 48b1bd7.

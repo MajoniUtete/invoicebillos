@@ -37,6 +37,21 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm test
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npx expo prebuild --no-install --platform android
+        env:
+          CI: '1'
+          EXPO_NO_TELEMETRY: '1'
+      - run: ./gradlew assembleDebug --no-daemon
+        working-directory: mobile/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: invoicebillos-android-development
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 1
   database:
     runs-on: ubuntu-latest
     services:
@@ -58,3 +73,21 @@ jobs:
       - run: python3 scripts/test-database.py finance
       - run: psql --no-psqlrc --set=ON_ERROR_STOP=1 --file supabase/migrations/20261113192503_atomic_invoice_save.sql
       - run: python3 scripts/test-concurrency.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Start isolated genuine Auth and API backend
+        run: python3 scripts/minimal-local.py
+      - name: Genuine Auth and account-isolation tests
+        run: node scripts/e2e-local.mjs --keep-fixtures
+      - run: npx playwright install --with-deps chromium
+      - name: Browser end-to-end tests
+        run: |
+          npm run build
+          npm start -- --hostname 127.0.0.1 > /tmp/invoicebillos-web.log 2>&1 &
+          for attempt in $(seq 1 60); do curl -sf http://127.0.0.1:3000/login > /dev/null && break; sleep 1; done
+          node scripts/e2e-web.mjs
+      - name: Genuine access-token expiry and refresh
+        run: node scripts/e2e-session-expiry.mjs

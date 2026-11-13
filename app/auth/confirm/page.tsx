@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
@@ -12,7 +12,11 @@ function ConfirmContent() {
   const [message, setMessage] = useState("Confirming your reset link...");
   const [error, setError] = useState("");
 
+  const attempted = useRef<string | null>(null);
   useEffect(() => {
+    const request = searchParams.toString();
+    if (attempted.current === request) return;
+    attempted.current = request;
     async function confirmRecovery() {
       const token_hash = searchParams.get("token_hash");
       const type = searchParams.get("type");

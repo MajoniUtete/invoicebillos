@@ -6,7 +6,7 @@ import TurnstileWidget from "@/app/components/turnstile-widget";
 import { supabase } from "@/lib/supabase/client";
 
 const turnstileEnabled = Boolean(
-  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim(),
 );
 
 export default function ForgotPasswordPage() {
@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
         : "http://localhost:3000";
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
+      redirectTo: `${origin}/auth/recovery`,
       captchaToken: captchaToken || undefined,
     });
 
@@ -61,7 +61,7 @@ export default function ForgotPasswordPage() {
     }
 
     setSuccess(
-      "If that email exists in the system, a password reset link has been sent. Check your inbox and spam folder."
+      "If that email exists in the system, a password reset link has been sent. Check your inbox and spam folder.",
     );
     setBusy(false);
   }

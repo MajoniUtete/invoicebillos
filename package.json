@@ -12,7 +12,7 @@
   "dependencies": {
     "@supabase/ssr": "0.10.0",
     "@supabase/supabase-js": "2.100.1",
-    "next": "16.2.1",
+    "next": "16.4.6",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
@@ -23,8 +23,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.1",
+    "eslint-config-next": "16.4.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "8.5.32",
+    "source-map-js": "1.2.2",
+    "ws": "8.23.0"
   }
 }

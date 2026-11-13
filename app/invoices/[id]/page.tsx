@@ -278,7 +278,7 @@ export default function InvoiceDetailPage() {
     try {
       return {amounts:calculateFormInvoice(editableItems.map(item => ({quantity:item.quantity,unitPrice:item.unit_price})),taxPercent,discount,invoice?.currency || "EUR"),error:""};
     } catch (err) { return {amounts:null,error:err instanceof Error ? err.message : "Invalid amounts"}; }
-  }, [editableItems,taxPercent,discount,invoice?.currency]);
+  }, [editableItems,taxPercent,discount,invoice]);
   const subtotal = calculation.amounts?.subtotal ?? "—";
   const taxNumber = calculation.amounts?.tax ?? "—";
   const discountNumber = calculation.amounts?.discount ?? "—";

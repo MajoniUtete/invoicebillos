@@ -55,7 +55,7 @@ try:
     assert query(f"SELECT count(*) FROM public.invoices WHERE user_id={literal(a)};").stdout.strip()=='1'
     results=pair(lambda:save(str(uuid.uuid4()),header,invoice_id=invoice_id,version=1),lambda:save(str(uuid.uuid4()),header,invoice_id=invoice_id,version=1))
     assert sum(r.returncode==0 for r in results)==1,[r.stderr for r in results]
-    assert any('40001' in r.stderr for r in results),'Stale concurrent edit was not rejected'
+    assert any('PT409' in r.stderr for r in results),'Stale concurrent edit was not rejected'
     duplicate={**header,'invoice_number':'duplicate-'+a}
     results=pair(lambda:save(str(uuid.uuid4()),duplicate),lambda:save(str(uuid.uuid4()),duplicate))
     assert sum(r.returncode==0 for r in results)==1,[r.stderr for r in results]

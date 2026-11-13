@@ -1,0 +1,7 @@
+supabase/.temp/
+supabase/.branches/
+supabase/migrations/
+*.local.json
+*.log
+*.local.env
+*.local.pid

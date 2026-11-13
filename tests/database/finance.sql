@@ -41,7 +41,7 @@ BEGIN
  BEGIN
   PERFORM public.save_invoice(gen_random_uuid(),header,lines,(r->>'id')::bigint,1);
   RAISE EXCEPTION 'Stale version accepted';
- EXCEPTION WHEN serialization_failure THEN NULL; END;
+ EXCEPTION WHEN SQLSTATE 'PT409' THEN NULL; END;
  BEGIN
   UPDATE public.invoices SET total=0 WHERE id=(r->>'id')::bigint;
   RAISE EXCEPTION 'Direct write bypass allowed';

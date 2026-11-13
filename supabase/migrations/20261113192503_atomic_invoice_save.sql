@@ -100,7 +100,7 @@ BEGIN
   ELSE
     SELECT * INTO saved FROM public.invoices WHERE id=p_invoice_id AND user_id=actor FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Invoice unavailable' USING ERRCODE='42501'; END IF;
-    IF saved.version IS DISTINCT FROM p_expected_version THEN RAISE EXCEPTION 'Invoice changed; reload before saving' USING ERRCODE='40001'; END IF;
+    IF saved.version IS DISTINCT FROM p_expected_version THEN RAISE EXCEPTION 'Invoice changed; reload before saving' USING ERRCODE='PT409'; END IF;
     IF saved.status <> 'Draft' THEN RAISE EXCEPTION 'Issued invoices require a revision workflow' USING ERRCODE='22023'; END IF;
     target_id := saved.id;
     -- Clear the old discount before replacing lines, avoiding transient clamped totals.
@@ -135,7 +135,7 @@ BEGIN
  IF actor IS NULL THEN RAISE EXCEPTION 'Authentication required' USING ERRCODE='42501'; END IF;
  SELECT * INTO saved FROM public.invoices WHERE id=p_invoice_id AND user_id=actor FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Invoice unavailable' USING ERRCODE='42501'; END IF;
- IF saved.version IS DISTINCT FROM p_expected_version THEN RAISE EXCEPTION 'Invoice changed; reload' USING ERRCODE='40001'; END IF;
+ IF saved.version IS DISTINCT FROM p_expected_version THEN RAISE EXCEPTION 'Invoice changed; reload' USING ERRCODE='PT409'; END IF;
  IF p_delete THEN
    IF saved.status<>'Draft' THEN RAISE EXCEPTION 'Only drafts may be deleted' USING ERRCODE='22023'; END IF;
    DELETE FROM public.invoices WHERE id=saved.id;

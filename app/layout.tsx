@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import SessionBoundary from "./components/session-boundary";
 import AuthButtons from "./components/auth-buttons";
 import PWARegistration from "./components/pwa-registration";
 import "./globals.css";
@@ -111,7 +112,7 @@ export default function RootLayout({
             </div>
           </header>
 
-          {children}
+          <SessionBoundary>{children}</SessionBoundary>
 
           <footer className="border-t border-slate-800 bg-slate-950 print:hidden">
             <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-6 text-sm text-slate-400 md:px-10 md:flex-row md:items-center md:justify-between">

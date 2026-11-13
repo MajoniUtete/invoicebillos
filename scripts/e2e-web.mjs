@@ -222,6 +222,29 @@ try {
     JSON.stringify(fixtures),
     { mode: 0o600 },
   );
+  await page.goto(origin + "/invoices");
+  await page.getByText(number, { exact: true }).waitFor();
+  const otherTab = await context.newPage();
+  await otherTab.goto(origin + "/dashboard");
+  await otherTab.getByRole("button", { name: "Logout", exact: true }).click();
+  await otherTab.waitForURL("**/login**");
+  await otherTab.locator("input[type=email]").fill(other.email);
+  await otherTab.locator("input[type=password]").fill(other.password);
+  await otherTab.getByRole("button", { name: "Log in", exact: true }).click();
+  await otherTab.waitForURL("**/dashboard");
+  await page.getByText(other.email, { exact: true }).waitFor();
+  await page.waitForFunction(
+    (value) => !document.body.innerText.includes(value),
+    number,
+  );
+  check("two-tab account switching clears prior-account invoice state");
+  await otherTab.close();
+  fixtures.accounts[0] = account;
+  fs.writeFileSync(
+    new URL("../dev/accounts.local.json", import.meta.url),
+    JSON.stringify(fixtures),
+    { mode: 0o600 },
+  );
 } catch (error) {
   console.error("Browser failure path:", new URL(page.url()).pathname);
   console.error((await page.locator("body").innerText()).slice(-1000));

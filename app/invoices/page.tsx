@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { currencyTotals, formatStoredMoney } from "@/lib/finance/money.mjs";
 import { supabase } from "@/lib/supabase/client";
 
 type CustomerName = {
@@ -10,6 +11,7 @@ type CustomerName = {
 
 type InvoiceRow = {
   id: number;
+  version: number;
   invoice_number: string;
   issue_date: string | null;
   due_date: string | null;
@@ -26,6 +28,7 @@ type InvoiceRow = {
 
 type InvoiceRowRaw = {
   id: number;
+  version: number;
   invoice_number: string;
   issue_date: string | null;
   due_date: string | null;
@@ -55,16 +58,11 @@ function statusClasses(status: string) {
   }
 }
 
-function toNumber(value: number | string | null | undefined) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function formatMoney(
   currency: string,
   value: number | string | null | undefined
 ) {
-  return `${currency} ${toNumber(value).toFixed(2)}`;
+  return formatStoredMoney(currency,value);
 }
 
 function normalizeInvoiceRows(rows: InvoiceRowRaw[]): InvoiceRow[] {
@@ -112,7 +110,8 @@ export default function InvoicesPage() {
           .select(
             `
               id,
-              invoice_number,
+              version,
+          invoice_number,
               issue_date,
               due_date,
               currency,
@@ -157,6 +156,7 @@ export default function InvoicesPage() {
       .select(
         `
           id,
+          version,
           invoice_number,
           issue_date,
           due_date,
@@ -195,11 +195,9 @@ export default function InvoicesPage() {
     setSuccess("");
     setUpdatingId(invoiceId);
 
-    const { error } = await supabase
-      .from("invoices")
-      .update({ status })
-      .eq("id", invoiceId)
-      .eq("user_id", userId);
+    const { error } = await supabase.rpc("change_invoice_state", {
+      p_invoice_id:invoiceId,p_expected_version:invoices.find(row=>row.id===invoiceId)?.version,p_status:status,
+    });
 
     if (error) {
       setError(error.message);
@@ -228,11 +226,9 @@ export default function InvoicesPage() {
     setSuccess("");
     setDeletingId(invoiceId);
 
-    const { error } = await supabase
-      .from("invoices")
-      .delete()
-      .eq("id", invoiceId)
-      .eq("user_id", userId);
+    const { error } = await supabase.rpc("change_invoice_state", {
+      p_invoice_id:invoiceId,p_expected_version:invoices.find(row=>row.id===invoiceId)?.version,p_delete:true,
+    });
 
     if (error) {
       setError(error.message);
@@ -262,13 +258,9 @@ export default function InvoicesPage() {
 
   const totalInvoices = invoices.length;
 
-  const paidThisMonth = invoices
-    .filter((invoice) => invoice.status === "Paid")
-    .reduce((sum, invoice) => sum + toNumber(invoice.total), 0);
+  const paidThisMonth = currencyTotals(invoices.filter((invoice) => invoice.status === "Paid"));
 
-  const pendingAmount = invoices
-    .filter((invoice) => invoice.status === "Pending")
-    .reduce((sum, invoice) => sum + toNumber(invoice.total), 0);
+  const pendingAmount = currencyTotals(invoices.filter((invoice) => invoice.status === "Pending"));
 
   const overdueCount = invoices.filter(
     (invoice) => invoice.status === "Overdue"
@@ -329,7 +321,7 @@ export default function InvoicesPage() {
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
             <p className="text-sm text-slate-400">Paid amount</p>
             <h2 className="mt-3 text-3xl font-bold text-white">
-              USD {paidThisMonth.toFixed(2)}
+              {paidThisMonth}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-300">
               Total of invoices marked as paid
@@ -339,7 +331,7 @@ export default function InvoicesPage() {
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
             <p className="text-sm text-slate-400">Pending amount</p>
             <h2 className="mt-3 text-3xl font-bold text-white">
-              USD {pendingAmount.toFixed(2)}
+              {pendingAmount}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-300">
               Invoices waiting for payment
@@ -446,8 +438,8 @@ export default function InvoicesPage() {
                             invoice.status
                           )}`}
                         >
-                          <option value="Draft">Draft</option>
-                          <option value="Pending">Pending</option>
+                          <option value="Draft" disabled={invoice.status !== "Draft"}>Draft</option>
+                          <option value="Pending" disabled={invoice.status !== "Draft"}>Pending</option>
                           <option value="Paid">Paid</option>
                           <option value="Overdue">Overdue</option>
                         </select>
@@ -457,7 +449,7 @@ export default function InvoicesPage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteInvoice(invoice.id)}
-                          disabled={deletingId === invoice.id}
+                          disabled={deletingId === invoice.id || invoice.status !== "Draft"}
                           className="rounded-lg border border-rose-700 px-3 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-950/40 disabled:opacity-60"
                         >
                           {deletingId === invoice.id ? "Deleting..." : "Delete"}

@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { calculateFormInvoice, lineAmount, formatStoredMoney } from "@/lib/finance/money.mjs";
 import { supabase } from "@/lib/supabase/client";
 
 type InvoiceRecord = {
   id: number;
+  version: number;
+  customer_snapshot: CustomerRecord | null;
+  business_snapshot: ProfileRecord | null;
+  tax_percent: string | number | null;
   invoice_number: string;
   customer_id: number | null;
   issue_date: string | null;
@@ -89,7 +94,7 @@ function formatMoney(
   currency: string,
   value: number | string | null | undefined
 ) {
-  return `${currency} ${toNumber(value).toFixed(2)}`;
+  return formatStoredMoney(currency,value);
 }
 
 function formatDate(value: string | null | undefined) {
@@ -131,10 +136,10 @@ export default function InvoiceDetailPage() {
   const params = useParams();
   const invoiceId = params?.id ? String(params.id) : "";
 
+  const pendingSave = useRef<{fingerprint:string;requestId:string} | null>(null);
   const [invoice, setInvoice] = useState<InvoiceRecord | null>(null);
   const [customer, setCustomer] = useState<CustomerRecord | null>(null);
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
-  const [items, setItems] = useState<InvoiceItemRecord[]>([]);
   const [editableItems, setEditableItems] = useState<EditableLineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -209,7 +214,6 @@ export default function InvoiceDetailPage() {
       }
 
       const loadedItems = (itemResult.data as InvoiceItemRecord[]) ?? [];
-      setItems(loadedItems);
       setEditableItems(
         loadedItems.length > 0
           ? loadedItems.map((item) => createEditableItem(item))
@@ -222,7 +226,7 @@ export default function InvoiceDetailPage() {
         return;
       }
 
-      setCustomer((customerResult?.data as CustomerRecord | null) ?? null);
+      setCustomer(invoiceRecord.customer_snapshot ?? (customerResult?.data as CustomerRecord | null) ?? null);
 
       if (profileResult.error) {
         setError(profileResult.error.message);
@@ -230,7 +234,7 @@ export default function InvoiceDetailPage() {
         return;
       }
 
-      setProfile((profileResult.data as ProfileRecord | null) ?? null);
+      setProfile(invoiceRecord.business_snapshot ?? (profileResult.data as ProfileRecord | null) ?? null);
 
       setIssueDate(invoiceRecord.issue_date ?? "");
       setDueDate(invoiceRecord.due_date ?? "");
@@ -243,7 +247,7 @@ export default function InvoiceDetailPage() {
       const derivedTaxPercent =
         invoiceSubtotal > 0 ? (invoiceTaxAmount / invoiceSubtotal) * 100 : 0;
 
-      setTaxPercent(String(derivedTaxPercent));
+      setTaxPercent(String(invoiceRecord.tax_percent ?? derivedTaxPercent.toFixed(2)));
       setDiscount(String(invoiceRecord.discount ?? "0"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load invoice.");
@@ -270,16 +274,15 @@ export default function InvoiceDetailPage() {
     };
   }, [loadInvoiceDetail]);
 
-  const subtotal = useMemo(() => {
-    return editableItems.reduce((sum, item) => {
-      return sum + toNumber(item.quantity) * toNumber(item.unit_price);
-    }, 0);
-  }, [editableItems]);
-
-  const taxPercentNumber = toNumber(taxPercent);
-  const taxNumber = subtotal * (taxPercentNumber / 100);
-  const discountNumber = toNumber(discount);
-  const total = Math.max(subtotal + taxNumber - discountNumber, 0);
+  const calculation = useMemo(() => {
+    try {
+      return {amounts:calculateFormInvoice(editableItems.map(item => ({quantity:item.quantity,unitPrice:item.unit_price})),taxPercent,discount,invoice?.currency || "EUR"),error:""};
+    } catch (err) { return {amounts:null,error:err instanceof Error ? err.message : "Invalid amounts"}; }
+  }, [editableItems,taxPercent,discount,invoice?.currency]);
+  const subtotal = calculation.amounts?.subtotal ?? "—";
+  const taxNumber = calculation.amounts?.tax ?? "—";
+  const discountNumber = calculation.amounts?.discount ?? "—";
+  const total = calculation.amounts?.total ?? "—";
 
   function handlePrint() {
     window.print();
@@ -316,108 +319,18 @@ export default function InvoiceDetailPage() {
     setSuccess("");
 
     try {
-      const currentUserId = await fetchCurrentUserId();
-
-      const validItems = editableItems.filter(
-        (item) =>
-          item.item_name.trim() &&
-          toNumber(item.quantity) > 0 &&
-          toNumber(item.unit_price) >= 0
-      );
-
-      if (validItems.length === 0) {
-        setError("Please keep at least one valid line item.");
-        setSaving(false);
-        return;
-      }
-
-      const { error: updateInvoiceError } = await supabase
-        .from("invoices")
-        .update({
-          issue_date: issueDate || null,
-          due_date: dueDate || null,
-          status,
-          notes: notes.trim() || null,
-          payment_terms: paymentTerms.trim() || null,
-          tax: taxNumber,
-          discount: discountNumber,
-          subtotal,
-          total,
-        })
-        .eq("id", invoice.id)
-        .eq("user_id", currentUserId);
-
-      if (updateInvoiceError) {
-        setError(updateInvoiceError.message);
-        setSaving(false);
-        return;
-      }
-
-      const existingIds = items.map((item) => item.id);
-      const keptIds = validItems
-        .map((item) => item.id)
-        .filter((id): id is number => id !== null);
-
-      const idsToDelete = existingIds.filter((id) => !keptIds.includes(id));
-
-      if (idsToDelete.length > 0) {
-        const { error: deleteItemsError } = await supabase
-          .from("invoice_items")
-          .delete()
-          .in("id", idsToDelete)
-          .eq("user_id", currentUserId);
-
-        if (deleteItemsError) {
-          setError(deleteItemsError.message);
-          setSaving(false);
-          return;
-        }
-      }
-
-      for (const item of validItems) {
-        const quantity = toNumber(item.quantity);
-        const unitPrice = toNumber(item.unit_price);
-        const lineTotal = quantity * unitPrice;
-
-        if (item.id !== null) {
-          const { error: updateItemError } = await supabase
-            .from("invoice_items")
-            .update({
-              item_name: item.item_name.trim(),
-              description: item.description.trim() || null,
-              quantity,
-              unit_price: unitPrice,
-              line_total: lineTotal,
-            })
-            .eq("id", item.id)
-            .eq("user_id", currentUserId);
-
-          if (updateItemError) {
-            setError(updateItemError.message);
-            setSaving(false);
-            return;
-          }
-        } else {
-          const { error: insertItemError } = await supabase
-            .from("invoice_items")
-            .insert({
-              user_id: currentUserId,
-              invoice_id: invoice.id,
-              item_name: item.item_name.trim(),
-              description: item.description.trim() || null,
-              quantity,
-              unit_price: unitPrice,
-              line_total: lineTotal,
-            });
-
-          if (insertItemError) {
-            setError(insertItemError.message);
-            setSaving(false);
-            return;
-          }
-        }
-      }
-
+      await fetchCurrentUserId();
+      if (calculation.error || editableItems.some(item => !item.item_name.trim())) throw new Error(calculation.error || "Every line needs an item name.");
+      const header = {invoice_number:invoice.invoice_number,customer_id:invoice.customer_id,
+        currency:invoice.currency,issue_date:issueDate,due_date:dueDate,status,
+        tax_percent:taxPercent,discount,notes:notes.trim(),payment_terms:paymentTerms.trim()};
+      const lines = editableItems.map(item => ({item_name:item.item_name.trim(),description:item.description.trim(),quantity:item.quantity,unit_price:item.unit_price}));
+      const fingerprint = JSON.stringify({header,lines,version:invoice.version});
+      if (pendingSave.current?.fingerprint !== fingerprint) pendingSave.current = {fingerprint,requestId:crypto.randomUUID()};
+      const {error:saveError} = await supabase.rpc("save_invoice", {p_request_id:pendingSave.current.requestId,
+        p_invoice:header,p_items:lines,p_invoice_id:invoice.id,p_expected_version:invoice.version});
+      if (saveError) throw new Error(saveError.message);
+      pendingSave.current = null;
       await loadInvoiceDetail();
       setEditMode(false);
       setSuccess("Invoice updated successfully.");
@@ -440,7 +353,7 @@ export default function InvoiceDetailPage() {
               {editMode ? "Edit invoice" : "View invoice"}
             </h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              View, print, and now fully edit this invoice.
+              Drafts can be edited. Issued invoices require a revision.
             </p>
           </div>
 
@@ -478,6 +391,7 @@ export default function InvoiceDetailPage() {
                 <button
                   type="button"
                   onClick={() => setEditMode(true)}
+                  disabled={invoice?.status !== "Draft"}
                   className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-900"
                 >
                   Edit Invoice
@@ -543,8 +457,8 @@ export default function InvoiceDetailPage() {
                       >
                         <option value="Draft">Draft</option>
                         <option value="Pending">Pending</option>
-                        <option value="Paid">Paid</option>
-                        <option value="Overdue">Overdue</option>
+
+
                       </select>
                     ) : (
                       <span
@@ -694,8 +608,7 @@ export default function InvoiceDetailPage() {
 
                     <tbody>
                       {editableItems.map((item) => {
-                        const lineTotal =
-                          toNumber(item.quantity) * toNumber(item.unit_price);
+                        const lineTotal = lineAmount(String(item.quantity),String(item.unit_price),invoice.currency);
 
                         return (
                           <tr
@@ -871,7 +784,7 @@ export default function InvoiceDetailPage() {
 
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-slate-700">
                     <span>Tax rate</span>
-                    <span>{taxPercentNumber.toFixed(2)}%</span>
+                    <span>{taxPercent}%</span>
                   </div>
 
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-slate-700">

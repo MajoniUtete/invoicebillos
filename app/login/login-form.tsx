@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { safeRedirect } from "@/lib/auth/redirect.mjs";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import TurnstileWidget from "@/app/components/turnstile-widget";
@@ -75,7 +76,7 @@ export default function LoginForm({ nextUrl }: { nextUrl: string }) {
       return;
     }
 
-    router.push(nextUrl);
+    router.push(safeRedirect(nextUrl));
     router.refresh();
     setBusy(null);
   }

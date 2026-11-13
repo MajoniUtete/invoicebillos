@@ -1,0 +1,617 @@
+{
+  "tables": [
+    {
+      "rls": true,
+      "name": "customers"
+    },
+    {
+      "rls": true,
+      "name": "invoices"
+    },
+    {
+      "rls": true,
+      "name": "invoice_items"
+    },
+    {
+      "rls": true,
+      "name": "profiles"
+    },
+    {
+      "rls": true,
+      "name": "receipt_items"
+    },
+    {
+      "rls": true,
+      "name": "receipts"
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "invoices",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can insert own invoices",
+      "schemaname": "public",
+      "with_check": "((auth.uid() = user_id) AND ((customer_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM customers c\n  WHERE ((c.id = invoices.customer_id) AND (c.user_id = auth.uid()))))))"
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "invoices",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can update own invoices",
+      "schemaname": "public",
+      "with_check": "((auth.uid() = user_id) AND ((customer_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM customers c\n  WHERE ((c.id = invoices.customer_id) AND (c.user_id = auth.uid()))))))"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "invoice_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can insert own invoice items",
+      "schemaname": "public",
+      "with_check": "((auth.uid() = user_id) AND (EXISTS ( SELECT 1\n   FROM invoices i\n  WHERE ((i.id = invoice_items.invoice_id) AND (i.user_id = auth.uid())))))"
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() = id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can update own profile",
+      "schemaname": "public",
+      "with_check": "(auth.uid() = id)"
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "(auth.uid() = id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can delete own profile",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "receipts",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can view own receipts",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "receipts",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can delete own receipts",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "invoice_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can update own invoice items",
+      "schemaname": "public",
+      "with_check": "((auth.uid() = user_id) AND (EXISTS ( SELECT 1\n   FROM invoices i\n  WHERE ((i.id = invoice_items.invoice_id) AND (i.user_id = auth.uid())))))"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "receipts",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can insert own receipts",
+      "schemaname": "public",
+      "with_check": "((auth.uid() = user_id) AND ((customer_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM customers c\n  WHERE ((c.id = receipts.customer_id) AND (c.user_id = auth.uid()))))))"
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "receipts",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can update own receipts",
+      "schemaname": "public",
+      "with_check": "((auth.uid() = user_id) AND ((customer_id IS NULL) OR (EXISTS ( SELECT 1\n   FROM customers c\n  WHERE ((c.id = receipts.customer_id) AND (c.user_id = auth.uid()))))))"
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "receipt_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can insert own receipt items",
+      "schemaname": "public",
+      "with_check": "((auth.uid() = user_id) AND (EXISTS ( SELECT 1\n   FROM receipts r\n  WHERE ((r.id = receipt_items.receipt_id) AND (r.user_id = auth.uid())))))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "receipt_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can view own receipt items",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "receipt_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can delete own receipt items",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "receipt_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can update own receipt items",
+      "schemaname": "public",
+      "with_check": "((auth.uid() = user_id) AND (EXISTS ( SELECT 1\n   FROM receipts r\n  WHERE ((r.id = receipt_items.receipt_id) AND (r.user_id = auth.uid())))))"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "customers",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can view own customers",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "customers",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can insert own customers",
+      "schemaname": "public",
+      "with_check": "(auth.uid() = user_id)"
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "customers",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can update own customers",
+      "schemaname": "public",
+      "with_check": "(auth.uid() = user_id)"
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "customers",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can delete own customers",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "invoices",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can view own invoices",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "invoices",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can delete own invoices",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "invoice_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can view own invoice items",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "(auth.uid() = user_id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "invoice_items",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can delete own invoice items",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(auth.uid() = id)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can view own profile",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "Users can insert own profile",
+      "schemaname": "public",
+      "with_check": "(auth.uid() = id)"
+    }
+  ],
+  "functions": [
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "refresh_invoice_totals(bigint)",
+      "definition": "CREATE OR REPLACE FUNCTION public.refresh_invoice_totals(target_invoice_id bigint)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  update public.invoices i\n  set subtotal = coalesce((\n        select sum(ii.line_total)\n        from public.invoice_items ii\n        where ii.invoice_id = target_invoice_id\n      ), 0)\n  where i.id = target_invoice_id;\nend;\n$function$\n"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "refresh_invoice_totals_from_items()",
+      "definition": "CREATE OR REPLACE FUNCTION public.refresh_invoice_totals_from_items()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if tg_op = 'INSERT' then\n    perform public.refresh_invoice_totals(new.invoice_id);\n    return null;\n  end if;\n\n  if tg_op = 'UPDATE' then\n    perform public.refresh_invoice_totals(new.invoice_id);\n    if old.invoice_id is distinct from new.invoice_id then\n      perform public.refresh_invoice_totals(old.invoice_id);\n    end if;\n    return null;\n  end if;\n\n  if tg_op = 'DELETE' then\n    perform public.refresh_invoice_totals(old.invoice_id);\n    return null;\n  end if;\n\n  return null;\nend;\n$function$\n"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "refresh_receipt_totals(bigint)",
+      "definition": "CREATE OR REPLACE FUNCTION public.refresh_receipt_totals(target_receipt_id bigint)\n RETURNS void\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  update public.receipts r\n  set subtotal = coalesce((\n        select sum(ri.line_total)\n        from public.receipt_items ri\n        where ri.receipt_id = target_receipt_id\n      ), 0)\n  where r.id = target_receipt_id;\nend;\n$function$\n"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "refresh_receipt_totals_from_items()",
+      "definition": "CREATE OR REPLACE FUNCTION public.refresh_receipt_totals_from_items()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  if tg_op = 'INSERT' then\n    perform public.refresh_receipt_totals(new.receipt_id);\n    return null;\n  end if;\n\n  if tg_op = 'UPDATE' then\n    perform public.refresh_receipt_totals(new.receipt_id);\n    if old.receipt_id is distinct from new.receipt_id then\n      perform public.refresh_receipt_totals(old.receipt_id);\n    end if;\n    return null;\n  end if;\n\n  if tg_op = 'DELETE' then\n    perform public.refresh_receipt_totals(old.receipt_id);\n    return null;\n  end if;\n\n  return null;\nend;\n$function$\n"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "set_invoice_item_line_total()",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_invoice_item_line_total()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  new.line_total = coalesce(new.quantity, 0) * coalesce(new.unit_price, 0);\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "set_invoice_total()",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_invoice_total()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  new.total = greatest(coalesce(new.subtotal, 0) + coalesce(new.tax, 0) - coalesce(new.discount, 0), 0);\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "set_receipt_item_line_total()",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_receipt_item_line_total()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  new.line_total = coalesce(new.quantity, 0) * coalesce(new.unit_price, 0);\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "set_receipt_total()",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_receipt_total()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  new.total = greatest(coalesce(new.subtotal, 0) + coalesce(new.tax, 0) - coalesce(new.discount, 0), 0);\n  return new;\nend;\n$function$\n"
+    },
+    {
+      "acl": [
+        "=X/postgres",
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "config": [
+        "search_path=\"\""
+      ],
+      "definer": false,
+      "signature": "set_updated_at()",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\n SET search_path TO ''\nAS $function$\nbegin\n  new.updated_at = now();\n  return new;\nend;\n$function$\n"
+    }
+  ],
+  "constraints": [
+    {
+      "name": "customers_pkey",
+      "table": "customers",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "invoices_pkey",
+      "table": "invoices",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "invoices_invoice_number_key",
+      "table": "invoices",
+      "definition": "UNIQUE (invoice_number)"
+    },
+    {
+      "name": "invoices_customer_id_fkey",
+      "table": "invoices",
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "invoice_items_pkey",
+      "table": "invoice_items",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "invoice_items_invoice_id_fkey",
+      "table": "invoice_items",
+      "definition": "FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "customers_user_id_fkey",
+      "table": "customers",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "invoices_user_id_fkey",
+      "table": "invoices",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "invoice_items_user_id_fkey",
+      "table": "invoice_items",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "profiles_pkey",
+      "table": "profiles",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "profiles_id_fkey",
+      "table": "profiles",
+      "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "invoice_items_quantity_nonnegative",
+      "table": "invoice_items",
+      "definition": "CHECK ((quantity >= (0)::numeric))"
+    },
+    {
+      "name": "invoice_items_unit_price_nonnegative",
+      "table": "invoice_items",
+      "definition": "CHECK ((unit_price >= (0)::numeric))"
+    },
+    {
+      "name": "invoice_items_line_total_nonnegative",
+      "table": "invoice_items",
+      "definition": "CHECK ((line_total >= (0)::numeric))"
+    },
+    {
+      "name": "invoices_amounts_nonnegative",
+      "table": "invoices",
+      "definition": "CHECK (((subtotal >= (0)::numeric) AND (tax >= (0)::numeric) AND (discount >= (0)::numeric) AND (total >= (0)::numeric)))"
+    },
+    {
+      "name": "invoices_currency_format",
+      "table": "invoices",
+      "definition": "CHECK ((currency ~ '^[A-Za-z]{3,5}$'::text))"
+    },
+    {
+      "name": "invoices_status_valid",
+      "table": "invoices",
+      "definition": "CHECK ((status = ANY (ARRAY['Draft'::text, 'Pending'::text, 'Paid'::text, 'Partially Paid'::text, 'Overdue'::text, 'Cancelled'::text])))"
+    },
+    {
+      "name": "customers_status_valid",
+      "table": "customers",
+      "definition": "CHECK ((status = ANY (ARRAY['Active'::text, 'Inactive'::text, 'Lead'::text])))"
+    },
+    {
+      "name": "profiles_subscription_status_valid",
+      "table": "profiles",
+      "definition": "CHECK ((subscription_status = ANY (ARRAY['inactive'::text, 'trialing'::text, 'active'::text, 'past_due'::text, 'canceled'::text, 'unpaid'::text])))"
+    },
+    {
+      "name": "receipts_amounts_nonnegative",
+      "table": "receipts",
+      "definition": "CHECK (((subtotal >= (0)::numeric) AND (tax >= (0)::numeric) AND (discount >= (0)::numeric) AND (total >= (0)::numeric)))"
+    },
+    {
+      "name": "receipts_currency_format",
+      "table": "receipts",
+      "definition": "CHECK ((currency ~ '^[A-Za-z]{3,5}$'::text))"
+    },
+    {
+      "name": "receipts_payment_method_valid",
+      "table": "receipts",
+      "definition": "CHECK ((payment_method = ANY (ARRAY['Cash'::text, 'Card'::text, 'Mobile Money'::text, 'Bank Transfer'::text, 'Other'::text])))"
+    },
+    {
+      "name": "receipts_pkey",
+      "table": "receipts",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "receipts_receipt_number_key",
+      "table": "receipts",
+      "definition": "UNIQUE (receipt_number)"
+    },
+    {
+      "name": "receipts_customer_id_fkey",
+      "table": "receipts",
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "receipts_user_id_fkey",
+      "table": "receipts",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "receipt_items_quantity_nonnegative",
+      "table": "receipt_items",
+      "definition": "CHECK ((quantity >= (0)::numeric))"
+    },
+    {
+      "name": "receipt_items_unit_price_nonnegative",
+      "table": "receipt_items",
+      "definition": "CHECK ((unit_price >= (0)::numeric))"
+    },
+    {
+      "name": "receipt_items_line_total_nonnegative",
+      "table": "receipt_items",
+      "definition": "CHECK ((line_total >= (0)::numeric))"
+    },
+    {
+      "name": "receipt_items_pkey",
+      "table": "receipt_items",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "receipt_items_receipt_id_fkey",
+      "table": "receipt_items",
+      "definition": "FOREIGN KEY (receipt_id) REFERENCES receipts(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "receipt_items_user_id_fkey",
+      "table": "receipt_items",
+      "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    }
+  ]
+}

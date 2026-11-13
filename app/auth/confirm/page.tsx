@@ -16,7 +16,6 @@ function ConfirmContent() {
     async function confirmRecovery() {
       const token_hash = searchParams.get("token_hash");
       const type = searchParams.get("type");
-      const next = searchParams.get("next") || "/reset-password";
 
       if (!token_hash || type !== "recovery") {
         setError("Invalid or missing recovery link.");
@@ -34,7 +33,7 @@ function ConfirmContent() {
       }
 
       setMessage("Recovery link confirmed. Redirecting...");
-      router.replace(`${next}?fromRecovery=1`);
+      router.replace("/reset-password?fromRecovery=1");
       router.refresh();
     }
 

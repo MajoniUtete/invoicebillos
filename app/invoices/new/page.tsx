@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { calculateFormInvoice, lineAmount } from "@/lib/finance/money.mjs";
 import { supabase } from "@/lib/supabase/client";
 
 type Customer = {
@@ -110,11 +111,6 @@ function createEmptyForm(): InvoiceForm {
   };
 }
 
-function toMoneyNumber(value: string) {
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 async function fetchCurrentUserId() {
   const {
     data: { user },
@@ -136,6 +132,7 @@ export default function NewInvoicePage() {
   const [success, setSuccess] = useState("");
   const [form, setForm] = useState<InvoiceForm>(createEmptyForm());
   const [lineItems, setLineItems] = useState<LineItem[]>([createLineItem()]);
+  const pendingSave = useRef<{ fingerprint: string; requestId: string } | null>(null);
   const [userId, setUserId] = useState("");
 
   useEffect(() => {
@@ -199,18 +196,15 @@ export default function NewInvoicePage() {
     );
   }, [customers, form.customerId]);
 
-  const subtotal = useMemo(() => {
-    return lineItems.reduce((sum, item) => {
-      const quantity = toMoneyNumber(item.quantity);
-      const unitPrice = toMoneyNumber(item.unitPrice);
-      return sum + quantity * unitPrice;
-    }, 0);
-  }, [lineItems]);
-
-  const taxPercent = toMoneyNumber(form.taxPercent);
-  const tax = subtotal * (taxPercent / 100);
-  const discount = toMoneyNumber(form.discount);
-  const total = Math.max(subtotal + tax - discount, 0);
+  const calculation = useMemo(() => {
+    try {
+      return { amounts: calculateFormInvoice(lineItems.map(item => ({quantity:item.quantity, unitPrice:item.unitPrice})), form.taxPercent, form.discount, form.currency), error: "" };
+    } catch (err) { return { amounts: null, error: err instanceof Error ? err.message : "Invalid amounts" }; }
+  }, [lineItems, form.taxPercent, form.discount, form.currency]);
+  const subtotal = calculation.amounts?.subtotal ?? "—";
+  const tax = calculation.amounts?.tax ?? "—";
+  const discount = calculation.amounts?.discount ?? "—";
+  const total = calculation.amounts?.total ?? "—";
 
   function handleFormChange(
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -270,89 +264,33 @@ export default function NewInvoicePage() {
       return;
     }
 
-    const validItems = lineItems.filter(
-      (item) =>
-        item.itemName.trim() &&
-        toMoneyNumber(item.quantity) > 0 &&
-        toMoneyNumber(item.unitPrice) >= 0
-    );
-
-    if (validItems.length === 0) {
-      setError("Please add at least one valid line item.");
-      return;
+    if (calculation.error || lineItems.some(item => !item.itemName.trim())) {
+      setError(calculation.error || "Every line needs an item name."); return;
     }
-
+    if (saving) return;
     setSaving(true);
-
-    const { data: invoiceData, error: invoiceError } = await supabase
-      .from("invoices")
-      .insert([
-        {
-          user_id: userId,
-          invoice_number: form.invoiceNumber.trim(),
-          customer_id: Number(form.customerId),
-          issue_date: form.issueDate || null,
-          due_date: form.dueDate || null,
-          currency: form.currency,
-          subtotal,
-          tax,
-          discount,
-          total,
-          status,
-          notes: form.notes.trim() || null,
-          payment_terms: form.paymentTerms.trim() || null,
-        },
-      ])
-      .select("id")
-      .single();
-
-    if (invoiceError) {
-      setError(invoiceError.message);
-      setSaving(false);
-      return;
-    }
-
-    const invoiceId = invoiceData.id;
-
-    const itemsToInsert = validItems.map((item) => {
-      const quantity = toMoneyNumber(item.quantity);
-      const unitPrice = toMoneyNumber(item.unitPrice);
-      const lineTotal = quantity * unitPrice;
-
-      return {
-        user_id: userId,
-        invoice_id: invoiceId,
-        item_name: item.itemName.trim(),
-        description: item.description.trim() || null,
-        quantity,
-        unit_price: unitPrice,
-        line_total: lineTotal,
-      };
-    });
-
-    const { error: itemsError } = await supabase
-      .from("invoice_items")
-      .insert(itemsToInsert);
-
-    if (itemsError) {
-      setError(itemsError.message);
-      setSaving(false);
-      return;
-    }
-
-    setSuccess(
-      `Invoice ${form.invoiceNumber} saved successfully as ${status}.`
-    );
-
-    setForm({
-      ...createEmptyForm(),
-      currency: profile?.default_currency || "EUR",
-      notes: profile?.default_notes || "Thank you for your business.",
-      paymentTerms:
-        profile?.default_payment_terms || "Payment due within 14 days.",
-    });
-    setLineItems([createLineItem()]);
-    setSaving(false);
+    try {
+      await fetchCurrentUserId();
+      const header = { invoice_number:form.invoiceNumber.trim(), customer_id:form.customerId,
+        issue_date:form.issueDate, due_date:form.dueDate, currency:form.currency,
+        tax_percent:form.taxPercent, discount:form.discount, status,
+        notes:form.notes.trim(), payment_terms:form.paymentTerms.trim() };
+      const items = lineItems.map(item => ({item_name:item.itemName.trim(),description:item.description.trim(),quantity:item.quantity,unit_price:item.unitPrice}));
+      const fingerprint = JSON.stringify({header,items});
+      if (pendingSave.current?.fingerprint !== fingerprint) pendingSave.current = {fingerprint,requestId:crypto.randomUUID()};
+      const { error: saveError } = await supabase.rpc("save_invoice", {
+        p_request_id:pendingSave.current.requestId, p_invoice:header, p_items:items,
+      });
+      if (saveError) throw saveError;
+      pendingSave.current = null;
+      setSuccess(`Invoice ${form.invoiceNumber} saved successfully as ${status}.`);
+      setForm({...createEmptyForm(), currency:profile?.default_currency || "EUR",
+        notes:profile?.default_notes || "Thank you for your business.",
+        paymentTerms:profile?.default_payment_terms || "Payment due within 14 days."});
+      setLineItems([createLineItem()]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (err as {message?:string})?.message || "Save failed. Retry with the same content.");
+    } finally { setSaving(false); }
   }
 
   return (
@@ -539,9 +477,7 @@ export default function NewInvoicePage() {
 
               <div className="space-y-4">
                 {lineItems.map((item, index) => {
-                  const quantity = toMoneyNumber(item.quantity);
-                  const unitPrice = toMoneyNumber(item.unitPrice);
-                  const lineTotal = quantity * unitPrice;
+                  const lineTotal = lineAmount(item.quantity,item.unitPrice,form.currency);
 
                   return (
                     <div
@@ -643,7 +579,7 @@ export default function NewInvoicePage() {
                       <div className="mt-4 text-sm text-slate-300">
                         Line total:{" "}
                         <span className="font-semibold text-white">
-                          {form.currency} {lineTotal.toFixed(2)}
+                          {form.currency} {lineTotal}
                         </span>
                       </div>
                     </div>
@@ -728,29 +664,29 @@ export default function NewInvoicePage() {
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3 text-slate-300">
                   <span>Subtotal</span>
                   <span>
-                    {form.currency} {subtotal.toFixed(2)}
+                    {form.currency} {subtotal}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3 text-slate-300">
                   <span>Tax</span>
                   <span>
-                    {form.currency} {tax.toFixed(2)}
+                    {form.currency} {tax}
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3 text-slate-300">
                   <span>Tax rate</span>
-                  <span>{taxPercent.toFixed(2)}%</span>
+                  <span>{form.taxPercent}%</span>
                 </div>
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3 text-slate-300">
                   <span>Discount</span>
                   <span>
-                    {form.currency} {discount.toFixed(2)}
+                    {form.currency} {discount}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-lg font-bold text-white">
                   <span>Total</span>
                   <span>
-                    {form.currency} {total.toFixed(2)}
+                    {form.currency} {total}
                   </span>
                 </div>
               </div>

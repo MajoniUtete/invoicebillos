@@ -1,5 +1,7 @@
 # InvoiceBillos engineering recovery and mobile plan
 
+Current implementation and verified results: [Engineering verification](ENGINEERING_VERIFICATION_2026-11-13.md). The notes below are the earlier recovery plan.
+
 Date: 2026-11-13
 Branch: `engineering/backend-finance-mobile-2026-11-13`
 Production deployment is intentionally unchanged during investigation.

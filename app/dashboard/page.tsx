@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { currencyTotals, formatStoredMoney } from "@/lib/finance/money.mjs";
 import { supabase } from "@/lib/supabase/client";
 
 type CustomerRow = {
@@ -35,16 +36,11 @@ type InvoiceRowRaw = {
   customer: CustomerName | CustomerName[] | null;
 };
 
-function toNumber(value: number | string | null | undefined) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function formatMoney(
   currency: string,
   value: number | string | null | undefined
 ) {
-  return `${currency} ${toNumber(value).toFixed(2)}`;
+  return formatStoredMoney(currency,value);
 }
 
 function formatDate(value: string | null) {
@@ -150,15 +146,11 @@ export default function DashboardPage() {
   const totalInvoices = invoices.length;
 
   const paidAmount = useMemo(() => {
-    return invoices
-      .filter((invoice) => invoice.status === "Paid")
-      .reduce((sum, invoice) => sum + toNumber(invoice.total), 0);
+    return currencyTotals(invoices.filter((invoice) => invoice.status === "Paid"));
   }, [invoices]);
 
   const pendingAmount = useMemo(() => {
-    return invoices
-      .filter((invoice) => invoice.status === "Pending")
-      .reduce((sum, invoice) => sum + toNumber(invoice.total), 0);
+    return currencyTotals(invoices.filter((invoice) => invoice.status === "Pending"));
   }, [invoices]);
 
   const overdueCount = useMemo(() => {
@@ -247,7 +239,7 @@ export default function DashboardPage() {
               <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
                 <p className="text-sm text-slate-400">Paid amount</p>
                 <h2 className="mt-3 text-3xl font-bold text-white">
-                  USD {paidAmount.toFixed(2)}
+                  {paidAmount}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
                   Total of invoices marked as paid
@@ -257,7 +249,7 @@ export default function DashboardPage() {
               <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
                 <p className="text-sm text-slate-400">Pending amount</p>
                 <h2 className="mt-3 text-3xl font-bold text-white">
-                  USD {pendingAmount.toFixed(2)}
+                  {pendingAmount}
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
                   Invoices still waiting for payment

@@ -1,0 +1,60 @@
+name: Engineering checks
+on:
+  push:
+    branches: [engineering/backend-finance-mobile-2026-11-13]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://development.invalid
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: build-placeholder
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm test
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: [5432:5432]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql --no-psqlrc --set=ON_ERROR_STOP=1 --file tests/database/baseline.sql
+      - run: python3 scripts/test-database.py security
+      - run: python3 scripts/test-database.py finance
+      - run: psql --no-psqlrc --set=ON_ERROR_STOP=1 --file supabase/migrations/20261113192503_atomic_invoice_save.sql
+      - run: python3 scripts/test-concurrency.py

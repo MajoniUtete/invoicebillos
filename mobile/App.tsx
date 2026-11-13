@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Linking,
+  ActivityIndicator,
   Button,
   KeyboardAvoidingView,
   Platform,
@@ -15,9 +17,10 @@ import type { Session } from "@supabase/supabase-js";
 import { randomUUID } from "expo-crypto";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import { File } from "expo-file-system";
+import { File, Paths } from "expo-file-system";
 import { secureStorage, supabase } from "./lib/backend";
-import { invoiceHtml } from "./lib/pdf.mjs";
+import { invoiceHtml, pdfFileName } from "./lib/pdf.mjs";
+import { completeRecovery, recoveryRedirect } from "./lib/recovery.mjs";
 import { calculateFormInvoice } from "../lib/finance/money.mjs";
 
 type Customer = {
@@ -117,6 +120,31 @@ function Field({
   );
 }
 export default function App() {
+  const [recovering, setRecovering] = useState(false);
+  const seenLink = useRef<string | null>(null);
+  useEffect(() => {
+    const receive = async (url: string | null | undefined) => {
+      if (!url || seenLink.current === url) return;
+      seenLink.current = url;
+      try {
+        await completeRecovery(url, supabase.auth);
+        setRecovering(true);
+      } catch (error) {
+        seenLink.current = null;
+        setError(errorMessage(error));
+      }
+    };
+    void Linking.getInitialURL()
+      .then(receive)
+      .catch(() =>
+        setError("Unable to open recovery link. Request a new email."),
+      );
+    const listener = Linking.addEventListener(
+      "url",
+      (event) => void receive(event.url),
+    );
+    return () => listener.remove();
+  }, []);
   const [session, setSession] = useState<Session | null>(null),
     [ready, setReady] = useState(false),
     [error, setError] = useState("");
@@ -139,7 +167,8 @@ export default function App() {
       });
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, next) => {
+    } = supabase.auth.onAuthStateChange((event, next) => {
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);
       if (active) setSession(next);
     });
     return () => {
@@ -155,7 +184,12 @@ export default function App() {
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           {!ready ? (
-            <Text>Opening secure storage…</Text>
+            <View>
+              <ActivityIndicator accessibilityLabel="Opening secure storage" />
+              <Text>Opening secure storage…</Text>
+            </View>
+          ) : recovering ? (
+            <ResetPassword onDone={() => setRecovering(false)} />
           ) : session ? (
             <Workspace key={session.user.id} session={session} />
           ) : (
@@ -206,11 +240,88 @@ function Login({ initialError }: { initialError: string }) {
         disabled={busy}
         onPress={login}
       />
+      <Button
+        title="Forgot password?"
+        disabled={busy}
+        onPress={async () => {
+          setBusy(true);
+          setError("");
+          try {
+            if (!email.trim()) throw new Error("Enter your email first.");
+            const { error } = await supabase.auth.resetPasswordForEmail(
+              email.trim(),
+              { redirectTo: recoveryRedirect },
+            );
+            if (error) throw error;
+            Alert.alert(
+              "Check your email",
+              "Open the recovery email on this device. If the account exists, a link has been sent.",
+            );
+          } catch (error) {
+            setError(errorMessage(error));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
       <Text>
-        Use invoicebillos.com for account recovery and registration. Native
-        CAPTCHA support requires configuration if CAPTCHA is enforced by the
-        project.
+        Recovery emails open on this device. Registration is available on the
+        website. This isolated development backend uses email confirmation and
+        has CAPTCHA disabled.
       </Text>
+    </ScrollView>
+  );
+}
+function ResetPassword({ onDone }: { onDone: () => void }) {
+  const [password, setPassword] = useState(""),
+    [confirmation, setConfirmation] = useState(""),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  async function save() {
+    setBusy(true);
+    setError("");
+    try {
+      if (password.length < 10) throw new Error("Use at least 10 characters.");
+      if (password !== confirmation) throw new Error("Passwords do not match.");
+      const result = await supabase.auth.updateUser({ password });
+      if (result.error) throw result.error;
+      const signedOut = await supabase.auth.signOut({ scope: "global" });
+      if (signedOut.error) throw signedOut.error;
+      Alert.alert("Password changed", "Sign in with your new password.");
+      onDone();
+    } catch (error) {
+      setError(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <Text style={styles.title}>Reset password</Text>
+      <Field
+        label="New password"
+        value={password}
+        onChange={setPassword}
+        secure
+        disabled={busy}
+      />
+      <Field
+        label="Confirm new password"
+        value={confirmation}
+        onChange={setConfirmation}
+        secure
+        disabled={busy}
+      />
+      {!!error && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {error}
+        </Text>
+      )}
+      <Button
+        title={busy ? "Updating…" : "Update password"}
+        disabled={busy}
+        onPress={save}
+      />
     </ScrollView>
   );
 }
@@ -227,6 +338,7 @@ function Workspace({ session }: { session: Session }) {
   const [error, setError] = useState(""),
     [info, setInfo] = useState(""),
     [busy, setBusy] = useState(false);
+  const operationInFlight = useRef(false);
   const latestDraft = useRef(draft),
     mounted = useRef(true),
     draftKey = `draft.${session.user.id}`;
@@ -276,7 +388,8 @@ function Workspace({ session }: { session: Session }) {
     return data.user.id;
   }
   async function run(task: () => Promise<void>) {
-    if (busy) return;
+    if (operationInFlight.current) return;
+    operationInFlight.current = true;
     setBusy(true);
     setError("");
     setInfo("");
@@ -285,6 +398,7 @@ function Workspace({ session }: { session: Session }) {
     } catch (error) {
       if (mounted.current) setError(errorMessage(error));
     } finally {
+      operationInFlight.current = false;
       if (mounted.current) setBusy(false);
     }
   }
@@ -387,7 +501,14 @@ function Workspace({ session }: { session: Session }) {
       latestDraft.current = fresh;
       setDraft(fresh);
       setDraftStatus("Invoice saved; new draft ready");
-      setInfo("Invoice saved. Refresh invoices to view it.");
+      const saved = await supabase
+        .from("invoices")
+        .select("id,invoice_number,total,currency,status")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (!saved.error) setInvoices(saved.data ?? []);
+      setInfo("Invoice saved successfully.");
       setTab("invoices");
     });
   }
@@ -417,7 +538,13 @@ function Workspace({ session }: { session: Session }) {
             .single();
       if (result.error) throw result.error;
       setCustomer(emptyCustomer());
-      setInfo("Customer saved. Refresh to update the list.");
+      const updated = await supabase
+        .from("customers")
+        .select("*")
+        .eq("user_id", id)
+        .order("name");
+      if (!updated.error) setCustomers(updated.data ?? []);
+      setInfo("Customer saved successfully.");
     });
   }
   function deleteCustomer(item: Customer) {
@@ -485,15 +612,19 @@ function Workspace({ session }: { session: Session }) {
           invoice.business_snapshot ?? profile.data,
         ),
       });
+      const file = new File(uri);
       try {
-        await Sharing.shareAsync(uri, {
+        file.move(
+          new File(Paths.cache, pdfFileName(row.invoice_number, randomUUID())),
+        );
+        await Sharing.shareAsync(file.uri, {
           mimeType: "application/pdf",
           UTI: "com.adobe.pdf",
           dialogTitle: `Invoice ${row.invoice_number}`,
         });
       } finally {
         try {
-          new File(uri).delete();
+          file.delete();
         } catch {
           /* Best-effort temporary-file cleanup. */
         }
@@ -545,6 +676,7 @@ function Workspace({ session }: { session: Session }) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
+        {busy && <ActivityIndicator accessibilityLabel="Working" />}
         {!!error && (
           <Text accessibilityRole="alert" style={styles.error}>
             {error}

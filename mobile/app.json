@@ -1,13 +1,36 @@
 {
   "expo": {
-    "name":"InvoiceBillos Development",
-    "slug":"invoicebillos-mobile",
-    "version":"0.1.0",
-    "scheme":"invoicebillos-dev",
-    "orientation":"portrait",
-    "userInterfaceStyle":"light",
-    "ios":{"bundleIdentifier":"com.invoicebillos.development","supportsTablet":true},
-    "android":{"package":"com.invoicebillos.development","allowBackup":false},
-    "plugins":["expo-secure-store"]
+    "name": "InvoiceBillos Development",
+    "slug": "invoicebillos-mobile",
+    "version": "0.1.0",
+    "scheme": "invoicebillos-dev",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.invoicebillos.development",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "Connect to your isolated InvoiceBillos development backend on a trusted local network."
+      }
+    },
+    "android": {
+      "package": "com.invoicebillos.development",
+      "allowBackup": false
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-dev-client",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ]
   }
 }

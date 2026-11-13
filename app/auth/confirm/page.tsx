@@ -17,18 +17,24 @@ function ConfirmContent() {
       const token_hash = searchParams.get("token_hash");
       const type = searchParams.get("type");
 
-      if (!token_hash || type !== "recovery") {
+      const code = searchParams.get("code");
+      if (searchParams.has("error")) {
+        setError("Recovery link expired. Request a new email.");
+        return;
+      }
+      let verification;
+      if (code) verification = await supabase.auth.exchangeCodeForSession(code);
+      else if (token_hash && type === "recovery")
+        verification = await supabase.auth.verifyOtp({
+          token_hash,
+          type: "recovery",
+        });
+      else {
         setError("Invalid or missing recovery link.");
         return;
       }
-
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash,
-        type: "recovery",
-      });
-
-      if (error) {
-        setError(error.message);
+      if (verification.error) {
+        setError(verification.error.message);
         return;
       }
 

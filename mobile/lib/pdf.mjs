@@ -18,3 +18,14 @@ export function invoiceHtml(invoice, items, customer, profile) {
   <p>Subtotal ${e(invoice.currency)} ${e(invoice.subtotal)}\nTax ${e(invoice.tax)}\nDiscount ${e(invoice.discount)}</p>
   <h2>Total ${e(invoice.currency)} ${e(invoice.total)}</h2><p>${e(invoice.payment_terms)}\n${e(invoice.notes)}</p></body></html>`;
 }
+
+export function pdfFileName(number, unique) {
+  const name =
+    String(number)
+      .replace(/[^a-zA-Z0-9_-]/g, "_")
+      .slice(0, 60) || "invoice";
+  const suffix = String(unique)
+    .replace(/[^a-zA-Z0-9-]/g, "")
+    .slice(0, 36);
+  return `InvoiceBillos-${name}-${suffix}.pdf`;
+}

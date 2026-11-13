@@ -5,3 +5,4 @@ supabase/migrations/
 *.log
 *.local.env
 *.local.pid
+*.local/

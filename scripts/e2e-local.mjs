@@ -1,3 +1,4 @@
+import { assertLocalTestOrigin } from "./local-test-origin.mjs";
 process.on("uncaughtException", (error) => {
   console.error(
     "FAIL:",
@@ -16,11 +17,7 @@ import { completeRecovery, recoveryRedirect } from "../mobile/lib/recovery.mjs";
 const config = JSON.parse(
   fs.readFileSync(new URL("../dev/backend.local.json", import.meta.url)),
 );
-assert.equal(
-  new URL(config.API_URL).hostname,
-  "127.0.0.1",
-  "Only the isolated loopback backend is permitted",
-);
+assertLocalTestOrigin(config);
 const key = config.PUBLISHABLE_KEY || config.ANON_KEY;
 let dropResponse = false;
 function client() {

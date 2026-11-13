@@ -1,5 +1,7 @@
 # Physical-device validation checkpoint
 
+**Later Mac evidence:** See [13–14 November physical-device verification](MAC_PHYSICAL_DEVICE_VERIFICATION_2026-11-14.md). Both physical development builds were subsequently installed on the Mac-connected phones. The following Linux checkpoint is retained as historical evidence; its missing-Mac/device and local-APK-preservation blockers are superseded by that report.
+
 Date: 2026-11-13. Starting verified commit: b1eff8d4a9e7d450612a576718a4c46426e15e6f.
 Branch: engineering/backend-finance-mobile-2026-11-13. Production remains unchanged.
 

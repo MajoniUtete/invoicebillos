@@ -1,3 +1,4 @@
+import { assertLocalTestOrigin } from "./local-test-origin.mjs";
 /** Waits for a genuinely issued JWT to expire; never creates or forges tokens. */
 import fs from "node:fs";
 import assert from "node:assert/strict";
@@ -17,7 +18,7 @@ const c = JSON.parse(
   u = JSON.parse(
     fs.readFileSync(new URL("../dev/accounts.local.json", import.meta.url)),
   ).accounts[1];
-assert.equal(new URL(c.API_URL).hostname, "127.0.0.1");
+assertLocalTestOrigin(c);
 const client = createClient(c.API_URL, c.PUBLISHABLE_KEY || c.ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });

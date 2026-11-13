@@ -1,3 +1,4 @@
+import { assertLocalTestOrigin } from "./local-test-origin.mjs";
 process.on("uncaughtException", (error) => {
   console.error(
     "FAIL:",
@@ -16,7 +17,7 @@ import { randomUUID } from "node:crypto";
 const config = JSON.parse(
   fs.readFileSync(new URL("../dev/backend.local.json", import.meta.url)),
 );
-assert.equal(new URL(config.API_URL).hostname, "127.0.0.1");
+assertLocalTestOrigin(config);
 const fixtures = JSON.parse(
   fs.readFileSync(new URL("../dev/accounts.local.json", import.meta.url)),
 );

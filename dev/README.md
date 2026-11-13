@@ -27,6 +27,12 @@ Generated passwords, signing material, keys and disposable account details stay 
 
 The default API is loopback port 54321; Mailpit is loopback 54324. All underlying Auth/REST/database ports bind loopback. For a trusted private-LAN physical iPhone setup on a fresh Mac host, use `DEV_PUBLIC_ORIGIN=http://<MAC_PRIVATE_IP>:54321 python3 scripts/minimal-local.py`; only the gateway binds that private IP. The script refuses public origins and preserves a stack configured for a different URL. Keep the Mac firewall limited to the test device; stop the gateway and containers when done.
 
+For this LAN mode, pass the same `DEV_PUBLIC_ORIGIN` to `scripts/e2e-local.mjs`, `scripts/e2e-web.mjs`, and `scripts/e2e-session-expiry.mjs`. These tests accept only an explicitly selected RFC1918 address assigned to this computer, using the minimal isolated backend and port 54321. Hosted URLs and other LAN machines remain rejected. Example:
+
+```sh
+DEV_PUBLIC_ORIGIN=http://<MAC_PRIVATE_IP>:54321 node scripts/e2e-local.mjs --keep-fixtures
+```
+
 Stop just this test stack without deleting data:
 
 ```sh

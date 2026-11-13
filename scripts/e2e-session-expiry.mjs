@@ -24,9 +24,9 @@ const client = createClient(c.API_URL, c.PUBLISHABLE_KEY || c.ANON_KEY, {
 const login = await client.auth.signInWithPassword(u);
 assert.ifError(login.error);
 const initial = login.data.session;
-const wait = (initial.expires_at - Math.floor(Date.now() / 1000) + 2) * 1000;
+const wait = (initial.expires_at - Math.floor(Date.now() / 1000) + 35) * 1000;
 assert.ok(
-  wait > 0 && wait <= 310000,
+  wait > 0 && wait <= 345000,
   "Test backend must issue five-minute-or-shorter access tokens",
 );
 console.log(

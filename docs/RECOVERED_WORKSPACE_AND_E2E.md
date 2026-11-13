@@ -42,7 +42,7 @@ The staged finance migration was refined, not deployed: stale versions now raise
 - Playwright/Chromium passed: login, persisted session reload, invalid-date error recovery, invoice create/save, network response loss after commit and idempotent retry, editing, print-action invocation, PDF rendering, issuance lock, logout/account switch/foreign invoice denial, recovery email/server callback/password change/new login.
 - SQL baseline/security/finance suites and two-connection concurrency tests passed on a separate disposable PostgreSQL database.
 - Web production dependency audit: zero advisories. Native production dependency audit: three moderate entries in the Expo fingerprint/minimatch chain, no high/critical entries. The reported minimatch glob amplification is in the development fingerprint chain; no attacker-controlled glob path was established in the application. Retain it for dependency review.
-- A separate genuine expiry test waits for the issued five-minute token to expire, asserts a 401 using the old access token, and checks SDK on-demand refresh. Its final result and all three GitHub jobs must be checked on the final code commit; do not infer a pass from the earlier immediate-refresh test.
+- A separate genuine expiry test waits for the issued five-minute token to expire, waits beyond PostgREST's documented 30-second verifier clock-skew allowance, asserts a 401 using the old access token, and checks SDK on-demand refresh. Its final result and all three GitHub jobs must be checked on the final code commit; do not infer a pass from the earlier immediate-refresh test.
 
 ## Exact CI and build evidence
 

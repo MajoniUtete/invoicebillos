@@ -58,6 +58,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Do not intercept or cache account-specific pages. They contain private
+  // financial records and must never be served from an old shared cache.
+  const privatePaths = ["/dashboard", "/customers", "/invoices", "/settings",
+    "/login", "/reset-password", "/forgot-password", "/auth"];
+  if (privatePaths.some((path) => url.pathname === path || url.pathname.startsWith(path + "/"))) {
+    return;
+  }
+
   if (request.mode === "navigate") {
     event.respondWith(handleNavigationRequest(request));
     return;
